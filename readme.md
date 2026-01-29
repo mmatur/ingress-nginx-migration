@@ -1,8 +1,8 @@
 # Ingress NGINX Migration
 
-The Ingress NGINX Migration is a tool that analyzes Kubernetes NGINX Ingress resources to help with migration planning to Traefik.
-
 <img width="1185" height="816" alt="screenshot black" src="https://github.com/user-attachments/assets/e2d62f62-4dee-49ab-9012-5decc1bda0f0" />
+
+The Ingress NGINX Migration is a tool that analyzes Kubernetes NGINX Ingress resources to help with migration planning to Traefik.
 
 ## Features
 
@@ -19,7 +19,7 @@ and to do so it:
   - Unsupported annotations and their frequency
 - Provides flexible ingress filtering by controller class, ingress class name, and namespace
 
-### Supported NGINX Annotations
+## Supported NGINX Annotations
 
 The Ingress NGINX Migration checks for compatibility with common Ingress NGINX Controller annotations including:
 - Authentication (`auth-type`, `auth-secret`, `auth-realm`, etc.)
@@ -29,42 +29,33 @@ The Ingress NGINX Migration checks for compatibility with common Ingress NGINX C
 - CORS (`enable-cors`, `cors-allow-*`)
 - And more...
 
-## Send Report Feature
+For a complete list of supported annotations and their Traefik equivalents, see the [Ingress NGINX Annotations table](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/ingress-nginx/#annotations-support) in the Traefik documentation.
 
-The Ingress NGINX Migration tool includes an optional feature to share anonymized usage statistics with Traefik Labs.
-This helps the Traefik team understand real-world NGINX Ingress usage patterns and prioritize compatibility improvements for the migration process.
-The data is transmitted securely over HTTPS to Traefik Labs.
+## Installation
 
-**Note:** The share report functionality is only available when the analysis detects unsupported ingresses or annotations.
-If all your ingresses are fully compatible with Traefik, there won't be meaningful migration data to share, so the "Share Report" option will not appear in the interface.
+### Quick Install (Recommended)
 
-### Privacy and Data Protection
+Install the latest version using the install script:
 
-**Important: No sensitive data is transmitted.**
-The tool only sends aggregated statistics and counts - never actual ingress configurations, resource names, namespaces, or any other identifying information from your cluster.
-
-### Data Transmitted
-
-When you choose to share your report, only the following anonymized data is sent:
-
-```json
-{
-  "generationDate": "2024-12-03T14:30:25.123Z",
-  "version": "v1.0.0",
-  "ingressCount": 42,
-  "compatibleIngressCount": 38,
-  "vanillaIngressCount": 15,
-  "supportedIngressCount": 23,
-  "unsupportedIngressCount": 4,
-  "unsupportedIngressAnnotations": {
-    "nginx.ingress.kubernetes.io/custom-annotation": 2,
-    "nginx.ingress.kubernetes.io/experimental-feature": 2
-  }
-}
+```bash
+curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | bash
 ```
 
-### How to Use
+Install a specific version:
 
+```bash
+curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | TAG=v0.0.1 bash
+```
+
+Install without sudo (installs to `~/bin`):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | bash -s -- --no-sudo
+```
+
+### Manual Download
+
+Download the appropriate binary for your platform from the [releases page](https://github.com/traefik/ingress-nginx-migration/releases).
 **Via Web Interface:**
 1. Open the migration report in your browser
 2. Click the "Share Report" button that appears in the report interface (If unsupported ingresses or annotations are detected)
@@ -97,6 +88,16 @@ GLOBAL OPTIONS:
    --help, -h                                     Show help
 ```
 
+> [!TIP]
+> **Quick Start:** Run the tool with your kubeconfig:
+> ```bash
+> ingress-nginx-migration --kubeconfig ~/.kube/config
+> ```
+> Or using environment variables:
+> ```bash
+> KUBECONFIG=~/.kube/config ingress-nginx-migration
+> ```
+
 ### Required Permissions
 
 The Ingress NGINX Migration requires specific read-only permissions to analyze your cluster's Ingress resources.
@@ -110,10 +111,11 @@ Your kubeconfig user or service account must have the following permissions:
 | `networking.k8s.io/v1` | `ingressclasses` | `list`, `get`, `watch` | Cluster-wide      |
 | `networking.k8s.io/v1` | `ingresses`      | `list`, `get`, `watch` | Namespace-scoped* |
 
-**Namespace Scope:** The tool supports the `--namespaces` flag.
-If specific namespaces are provided, permissions are only required for those namespaces.
-If no namespaces are specified, the tool will attempt to analyze all namespaces,
-and requiring permission across all namespaces for Ingresses.
+> [!NOTE]
+> **Namespace Scope:**
+> The tool supports the `--namespaces` flag.
+> If specific namespaces are provided, permissions are only required for those namespaces.
+> If no namespaces are specified, the tool will attempt to analyze all namespaces, and requiring permission across all namespaces for Ingresses.
 
 ### Why These Permissions?
 
@@ -126,45 +128,43 @@ Informers require `list`, `get`, and `watch` permissions to:
 
 All operations are read-only - the tool never modifies any cluster resources.
 
-## Installation
+## Send Report Feature
 
-### Quick Install (Recommended)
+The Ingress NGINX Migration tool includes an optional feature to share anonymized usage statistics with Traefik Labs.
+This helps the Traefik team understand real-world NGINX Ingress usage patterns and prioritize compatibility improvements for the migration process.
+The data is transmitted securely over HTTPS to Traefik Labs.
 
-Install the latest version using the install script:
+### Privacy and Data Protection
 
-```bash
-curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | bash
+**Important: No sensitive data is transmitted.**
+The tool only sends aggregated statistics and counts - never actual ingress configurations, resource names, namespaces, or any other identifying information from your cluster.
+
+### Data Transmitted
+
+When you choose to share your report, the following anonymized data is sent:
+
+```json
+{
+  "generationDate": "2024-12-03T14:30:25.123Z",
+  "version": "v1.0.0",
+  "ingressCount": 42,
+  "compatibleIngressCount": 38,
+  "vanillaIngressCount": 15,
+  "supportedIngressCount": 23,
+  "unsupportedIngressCount": 4,
+  "unsupportedIngressAnnotations": {
+    "nginx.ingress.kubernetes.io/custom-annotation": 2,
+    "nginx.ingress.kubernetes.io/experimental-feature": 2
+  }
+}
 ```
 
-Install a specific version:
+### How to Use
 
-```bash
-curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | TAG=v0.0.1 bash
-```
-
-Install without sudo (installs to `~/bin`):
-
-```bash
-curl -sSL https://raw.githubusercontent.com/traefik/ingress-nginx-migration/main/scripts/install.sh | bash -s -- --no-sudo
-```
-
-### Manual Download
-
-Download the appropriate binary for your platform from the [releases page](https://github.com/traefik/ingress-nginx-migration/releases).
-
-## Running
-
-Run:
-
-```bash
-KUBECONFIG=~/.kube/config ingress-nginx-migration
-```
-
-Run with a kubeconfig file:
-
-```bash
-ingress-nginx-migration --kubeconfig ~/.kube/config
-```
+**Via Web Interface:**
+1. Open the migration report in your browser
+2. Click the "Share Report" button in the report interface
+3. Optionally view the exact data to be sent before confirming
 
 ## Utility endpoints exposed by the Ingress NGINX Migration tool
 
