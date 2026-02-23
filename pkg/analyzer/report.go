@@ -128,6 +128,7 @@ var supportedAnnotations = map[string]struct{}{
 	"nginx.ingress.kubernetes.io/modsecurity-snippet":       {},
 }
 
+
 // IngressReport contains the analysis report for a single Ingress.
 type IngressReport struct {
 	Name                   string   `json:"name"`
