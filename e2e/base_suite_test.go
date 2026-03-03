@@ -73,6 +73,7 @@ func initClusters() error {
 	// Traefik listens on ports 80/443, nginx on 30080/30443.
 	container, err := k3s.Run(ctx, k3sImage,
 		testcontainers.WithExposedPorts("80/tcp", "443/tcp", "30080/tcp", "30443/tcp"),
+		testcontainers.WithName("cluster"),
 		k3s.WithManifest(filepath.Join(fixturesDir, "nginx-helmchart.yaml")),
 	)
 	if err != nil {
