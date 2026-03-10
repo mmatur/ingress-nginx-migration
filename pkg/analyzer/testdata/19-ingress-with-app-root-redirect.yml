@@ -5,9 +5,11 @@ metadata:
   name: ingress-with-app-root
   namespace: default
   annotations:
-    # App root and redirect annotations - NOT supported by Traefik
-    nginx.ingress.kubernetes.io/app-root: "/app"
+    # Path matching - Supported since Traefik v3.6
     nginx.ingress.kubernetes.io/use-regex: "true"
+    # App root - Supported since Traefik v3.7
+    nginx.ingress.kubernetes.io/app-root: "/app"
+    # Redirect annotations - Supported since Traefik v3.7
     nginx.ingress.kubernetes.io/permanent-redirect: "https://newdomain.example.com$request_uri"
     nginx.ingress.kubernetes.io/permanent-redirect-code: "308"
     nginx.ingress.kubernetes.io/temporal-redirect: "https://maintenance.example.com"
