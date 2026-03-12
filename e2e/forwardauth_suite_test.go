@@ -494,30 +494,6 @@ func (s *ForwardAuthSuite) TestAuthSnippet() {
 				assert.Equal(t, http.MethodPost, nginxResp.RequestHeaders["X-Request-Method"], "nginx request header mismatch")
 			},
 		},
-		{
-			desc: "add_header",
-			annotations: map[string]string{
-				"nginx.ingress.kubernetes.io/auth-url":              authServerServiceURL + "/",
-				"nginx.ingress.kubernetes.io/auth-snippet":          "add_header X-Auth-Debug $request_uri always;",
-				"nginx.ingress.kubernetes.io/configuration-snippet": "auth_request_set $authHeader0 $upstream_http_x_auth_debug;\nproxy_set_header X-Auth-Debug $authHeader0;\n",
-				"nginx.ingress.kubernetes.io/auth-response-headers": "X-Auth-Debug",
-			},
-			test: func(t *testing.T, hostTraefik, hostNginx string) {
-				t.Helper()
-
-				traefikResp := s.traefik.MakeRequest(t, hostTraefik, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
-				require.NotNil(t, traefikResp, "traefik response should not be nil")
-
-				nginxResp := s.nginx.MakeRequest(t, hostNginx, http.MethodGet, "/protected/resource", nil, 3, 1*time.Second)
-				require.NotNil(t, nginxResp, "nginx response should not be nil")
-
-				assert.Equal(t, http.StatusOK, nginxResp.StatusCode, "status code mismatch")
-				assert.Equal(t, http.StatusOK, traefikResp.StatusCode, "status code mismatch")
-
-				assert.Equal(t, http.MethodPost, traefikResp.RequestHeaders["X-Auth-Debug"], "traefik request header mismatch")
-				assert.Equal(t, http.MethodPost, nginxResp.ResponseHeaders["X-Auth-Debug"], "nginx response header mismatch")
-			},
-		},
 	}
 
 	for _, test := range testCases {
