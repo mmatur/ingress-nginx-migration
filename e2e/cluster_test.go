@@ -140,8 +140,8 @@ func (c *Cluster) DeploySharedResources() error {
 
 // CleanupSharedResources removes the whoami backend.
 func (c *Cluster) CleanupSharedResources() {
-	_ = c.Kubectl("delete", "deployment", "snippet-test-backend", "-n", c.TestNamespace, "--ignore-not-found")
-	_ = c.Kubectl("delete", "service", "snippet-test-backend", "-n", c.TestNamespace, "--ignore-not-found")
+	_ = c.Kubectl("delete", "deployment", "backend", "-n", c.TestNamespace, "--ignore-not-found")
+	_ = c.Kubectl("delete", "service", "backend", "-n", c.TestNamespace, "--ignore-not-found")
 }
 
 // WaitForIngressReady waits until the ingress controller starts routing for the given host
