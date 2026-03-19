@@ -8,14 +8,9 @@ metadata:
     # Upstream vhost and hash - Supported since Traefik v3.7
     nginx.ingress.kubernetes.io/upstream-vhost: "internal-service.example.com"
     nginx.ingress.kubernetes.io/upstream-hash-by: "$request_uri consistent"
-    # Upstream keepalive/failover - NOT supported by Traefik
+    # Upstream hash subset - NOT supported by Traefik
     nginx.ingress.kubernetes.io/upstream-hash-by-subset: "true"
     nginx.ingress.kubernetes.io/upstream-hash-by-subset-size: "3"
-    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "32"
-    nginx.ingress.kubernetes.io/upstream-keepalive-requests: "100"
-    nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "60s"
-    nginx.ingress.kubernetes.io/upstream-max-fails: "3"
-    nginx.ingress.kubernetes.io/upstream-fail-timeout: "10s"
 spec:
   ingressClassName: nginx
   rules:

@@ -13,6 +13,7 @@ metadata:
     nginx.ingress.kubernetes.io/permanent-redirect: "https://newdomain.example.com$request_uri"
     nginx.ingress.kubernetes.io/permanent-redirect-code: "308"
     nginx.ingress.kubernetes.io/temporal-redirect: "https://maintenance.example.com"
+    nginx.ingress.kubernetes.io/temporal-redirect-code: "307"
     nginx.ingress.kubernetes.io/from-to-www-redirect: "true"
 spec:
   ingressClassName: nginx
