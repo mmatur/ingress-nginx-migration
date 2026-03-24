@@ -6,10 +6,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 )
 
 func TestClassifyIngressVersion(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name                 string
 		supportedAnnotations []AnnotationInfo
@@ -53,6 +54,8 @@ func TestClassifyIngressVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var r Report
 			r.classifyIngressVersion(tt.supportedAnnotations)
 
@@ -75,6 +78,8 @@ func TestClassifyIngressVersion(t *testing.T) {
 }
 
 func TestComputeIngressReport(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name                   string
 		annotations            map[string]string
@@ -134,6 +139,8 @@ func TestComputeIngressReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ing := &netv1.Ingress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "test-ingress",
@@ -141,7 +148,7 @@ func TestComputeIngressReport(t *testing.T) {
 					Annotations: tt.annotations,
 				},
 				Spec: netv1.IngressSpec{
-					IngressClassName: ptr.To("nginx"),
+					IngressClassName: new("nginx"),
 				},
 			}
 
