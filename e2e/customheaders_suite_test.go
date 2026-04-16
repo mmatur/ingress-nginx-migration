@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	customHeadersIngressName    = "custom-headers-test"
-	customHeadersTraefikHost    = customHeadersIngressName + ".traefik.local"
-	customHeadersNginxHost      = customHeadersIngressName + ".nginx.local"
-	customHeadersConfigMapName  = "custom-headers"
+	customHeadersIngressName   = "custom-headers-test"
+	customHeadersTraefikHost   = customHeadersIngressName + ".traefik.local"
+	customHeadersNginxHost     = customHeadersIngressName + ".nginx.local"
+	customHeadersConfigMapName = "custom-headers"
 )
 
 type CustomHeadersSuite struct {
@@ -95,64 +95,104 @@ func (s *CustomHeadersSuite) request(method, path string, headers map[string]str
 	return traefikResp, nginxResp
 }
 
-// Custom response headers — verified via HTTP response headers.
+func (s *CustomHeadersSuite) TestCustomHeaders() {
+	testCases := []struct {
+		desc    string
+		method  string
+		path    string
+		headers map[string]string
+		check   func(t *testing.T, traefikResp, nginxResp *Response)
+	}{
+		{
+			desc:   "X-Custom-Resp header",
+			method: http.MethodGet,
+			path:   "/",
+			check: func(t *testing.T, traefikResp, nginxResp *Response) {
+				assert.Equal(t, nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+				assert.Equal(t,
+					nginxResp.ResponseHeaders.Get("X-Custom-Resp"),
+					traefikResp.ResponseHeaders.Get("X-Custom-Resp"),
+					"X-Custom-Resp mismatch",
+				)
+			},
+		},
+		{
+			desc:   "X-Frame-Options header",
+			method: http.MethodGet,
+			path:   "/",
+			check: func(t *testing.T, traefikResp, nginxResp *Response) {
+				assert.Equal(t,
+					nginxResp.ResponseHeaders.Get("X-Frame-Options"),
+					traefikResp.ResponseHeaders.Get("X-Frame-Options"),
+					"X-Frame-Options mismatch",
+				)
+			},
+		},
+		{
+			desc:   "X-More-Resp header",
+			method: http.MethodGet,
+			path:   "/",
+			check: func(t *testing.T, traefikResp, nginxResp *Response) {
+				assert.Equal(t,
+					nginxResp.ResponseHeaders.Get("X-More-Resp"),
+					traefikResp.ResponseHeaders.Get("X-More-Resp"),
+					"X-More-Resp mismatch",
+				)
+			},
+		},
+		{
+			desc:    "client header passthrough",
+			method:  http.MethodGet,
+			path:    "/",
+			headers: map[string]string{"X-Client-Custom": "from-client"},
+			check: func(t *testing.T, traefikResp, nginxResp *Response) {
+				assert.Equal(t, nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
+				assert.Equal(t,
+					nginxResp.RequestHeaders["X-Client-Custom"],
+					traefikResp.RequestHeaders["X-Client-Custom"],
+					"client header passthrough mismatch",
+				)
+			},
+		},
+	}
 
-func (s *CustomHeadersSuite) TestCustomResponseHeader() {
-	traefikResp, nginxResp := s.request(http.MethodGet, "/", nil)
-
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(),
-		nginxResp.ResponseHeaders.Get("X-Custom-Resp"),
-		traefikResp.ResponseHeaders.Get("X-Custom-Resp"),
-		"custom response header mismatch",
-	)
+	for _, tc := range testCases {
+		s.T().Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+			traefikResp, nginxResp := s.request(tc.method, tc.path, tc.headers)
+			tc.check(t, traefikResp, nginxResp)
+		})
+	}
 }
 
-func (s *CustomHeadersSuite) TestSecurityResponseHeader() {
-	traefikResp, nginxResp := s.request(http.MethodGet, "/", nil)
+func (s *CustomHeadersSuite) TestWrongConfigMap() {
+	wrongCMIngressName := "custom-headers-wrong-cm"
+	wrongCMHost := wrongCMIngressName + ".traefik.local"
+	wrongCMNginxHost := wrongCMIngressName + ".nginx.local"
 
-	assert.Equal(s.T(),
-		nginxResp.ResponseHeaders.Get("X-Frame-Options"),
-		traefikResp.ResponseHeaders.Get("X-Frame-Options"),
-		"X-Frame-Options mismatch",
-	)
-}
+	wrongCMAnnotations := map[string]string{
+		"nginx.ingress.kubernetes.io/custom-headers": fmt.Sprintf("%s/%s", s.traefik.TestNamespace, "non-existent-configmap"),
+	}
 
-func (s *CustomHeadersSuite) TestMoreSetResponseHeaders() {
-	traefikResp, nginxResp := s.request(http.MethodGet, "/", nil)
+	err := s.traefik.DeployIngress(wrongCMIngressName, wrongCMHost, wrongCMAnnotations)
+	require.NoError(s.T(), err, "deploy wrong-cm ingress to traefik cluster")
 
-	assert.Equal(s.T(),
-		nginxResp.ResponseHeaders.Get("X-More-Resp"),
-		traefikResp.ResponseHeaders.Get("X-More-Resp"),
-		"more_set_headers response mismatch",
-	)
-}
+	err = s.nginx.DeployIngress(wrongCMIngressName, wrongCMNginxHost, wrongCMAnnotations)
+	require.NoError(s.T(), err, "deploy wrong-cm ingress to nginx cluster")
 
-// Client-originated headers.
-
-func (s *CustomHeadersSuite) TestClientHeaderPassthrough() {
-	traefikResp, nginxResp := s.request(http.MethodGet, "/", map[string]string{
-		"X-Client-Custom": "from-client",
+	s.T().Cleanup(func() {
+		_ = s.traefik.DeleteIngress(wrongCMIngressName)
+		_ = s.nginx.DeleteIngress(wrongCMIngressName)
 	})
 
-	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch")
-	assert.Equal(s.T(),
-		nginxResp.RequestHeaders["X-Client-Custom"],
-		traefikResp.RequestHeaders["X-Client-Custom"],
-		"client header passthrough mismatch",
-	)
-}
+	s.traefik.WaitForIngressReady(s.T(), wrongCMHost, 20, 1*time.Second)
+	s.nginx.WaitForIngressReady(s.T(), wrongCMNginxHost, 20, 1*time.Second)
 
-// Combined verification.
+	traefikResp := s.traefik.MakeRequest(s.T(), wrongCMHost, http.MethodGet, "/", nil, 3, 1*time.Second)
+	require.NotNil(s.T(), traefikResp, "traefik response should not be nil")
 
-func (s *CustomHeadersSuite) TestAllResponseHeaders() {
-	traefikResp, nginxResp := s.request(http.MethodGet, "/", nil)
+	nginxResp := s.nginx.MakeRequest(s.T(), wrongCMNginxHost, http.MethodGet, "/", nil, 3, 1*time.Second)
+	require.NotNil(s.T(), nginxResp, "nginx response should not be nil")
 
-	for _, header := range []string{"X-Custom-Resp", "X-Frame-Options", "X-More-Resp"} {
-		assert.Equal(s.T(),
-			nginxResp.ResponseHeaders.Get(header),
-			traefikResp.ResponseHeaders.Get(header),
-			"response header %s mismatch", header,
-		)
-	}
+	assert.Equal(s.T(), nginxResp.StatusCode, traefikResp.StatusCode, "status code mismatch with wrong ConfigMap")
 }
